@@ -78,6 +78,8 @@ type PluginCommand struct {
 	Meta
 }
 
+var PreProcessors = map[string]packer.PreProcessor{}
+
 var Builders = map[string]packer.Builder{
 	"alicloud-ecs":        new(alicloudecsbuilder.Builder),
 	"amazon-chroot":       new(amazonchrootbuilder.Builder),

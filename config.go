@@ -27,6 +27,7 @@ type config struct {
 	PluginMinPort              uint
 	PluginMaxPort              uint
 
+	PreProcessors  map[string]string `json:"pre-processors"`
 	Builders       map[string]string
 	PostProcessors map[string]string `json:"post-processors"`
 	Provisioners   map[string]string
@@ -87,6 +88,19 @@ func (c *config) Discover() error {
 	return nil
 }
 
+// This is a proper packer.PreProcessorFunc that can be used to load
+// packer.PreProcessor implementations from defined plugins.
+func (c *config) LoadPreProcessor(name string) (packer.PreProcessor, error) {
+	log.Printf("Loading pre-processor: %s", name)
+	bin, ok := c.PreProcessors[name]
+	if !ok {
+		log.Printf("Pre-processor not found: %s", name)
+		return nil, nil
+	}
+
+	return c.pluginClient(bin).PreProcessor()
+}
+
 // This is a proper packer.BuilderFunc that can be used to load packer.Builder
 // implementations from the defined plugins.
 func (c *config) LoadBuilder(name string) (packer.Builder, error) {
@@ -141,6 +155,11 @@ func (c *config) discover(path string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	err = c.discoverSingle(filepath.Join(path, "packer-pre-processor-*"), &c.PreProcessors)
+	if err != nil {
+		return err
 	}
 
 	err = c.discoverSingle(
@@ -203,6 +222,16 @@ func (c *config) discoverInternal() error {
 	if err != nil {
 		log.Printf("[ERR] Error loading exe directory: %s", err)
 		return err
+	}
+
+	for preProcessor := range command.PreProcessors {
+		_, found := (c.PreProcessors)[preProcessor]
+		if !found {
+			log.Printf("Using internal plugin for %s", preProcessor)
+			(c.PostProcessors)[preProcessor] = fmt.Sprintf(
+				"%s%splugin%spacker-pre-processor-%s",
+				packerPath, PACKERSPACE, PACKERSPACE, preProcessor)
+		}
 	}
 
 	for builder := range command.Builders {
