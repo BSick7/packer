@@ -54,6 +54,14 @@ func TestHelperProcess(*testing.T) {
 	case "bad-version":
 		fmt.Printf("%s1|tcp|:1234\n", APIVersion)
 		<-make(chan int)
+	case "pre-processor":
+		server, err := Server()
+		if err != nil {
+			log.Printf("[ERR] %s", err)
+			os.Exit(1)
+		}
+		server.RegisterPreProcessor(new(helperPreProcessor))
+		server.Serve()
 	case "builder":
 		server, err := Server()
 		if err != nil {
