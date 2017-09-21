@@ -20,7 +20,7 @@ func (pp *TestPreProcessor) Configure(v ...interface{}) error {
 	return nil
 }
 
-func (pp *TestPreProcessor) PostProcess(ui packer.Ui) error {
+func (pp *TestPreProcessor) PreProcess(ui packer.Ui) error {
 	pp.ppCalled = true
 	pp.ppUi = ui
 	return nil

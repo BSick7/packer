@@ -31,7 +31,7 @@ type PreProcessorProcessResponse struct {
 
 func (p *preProcessor) Configure(raw ...interface{}) (err error) {
 	args := &PostProcessorConfigureArgs{Configs: raw}
-	if cerr := p.client.Call("PostProcessor.Configure", args, new(interface{})); cerr != nil {
+	if cerr := p.client.Call("PreProcessor.Configure", args, new(interface{})); cerr != nil {
 		err = cerr
 	}
 

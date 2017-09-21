@@ -20,7 +20,7 @@ func (c *cmdPreProcessor) Configure(config ...interface{}) error {
 	return c.p.Configure(config...)
 }
 
-func (c *cmdPreProcessor) PostProcess(ui packer.Ui) error {
+func (c *cmdPreProcessor) PreProcess(ui packer.Ui) error {
 	defer func() {
 		r := recover()
 		c.checkExit(r, nil)
