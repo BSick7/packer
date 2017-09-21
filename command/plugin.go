@@ -78,7 +78,9 @@ type PluginCommand struct {
 	Meta
 }
 
-var PreProcessors = map[string]packer.PreProcessor{}
+var PreProcessors = map[string]packer.PreProcessor{
+	"null": new(nullpreprocessor.PreProcessor),
+}
 
 var Builders = map[string]packer.Builder{
 	"alicloud-ecs":        new(alicloudecsbuilder.Builder),
@@ -176,6 +178,13 @@ func (c *PluginCommand) Run(args []string) int {
 	}
 
 	switch pluginType {
+	case "pre-processor":
+		preProcessor, found := PreProcessors[pluginName]
+		if !found {
+			c.Ui.Error(fmt.Sprintf("Could not load pre-processor: %s", pluginName))
+			return 1
+		}
+		server.RegisterPreProcessor(preProcessor)
 	case "builder":
 		builder, found := Builders[pluginName]
 		if !found {

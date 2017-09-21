@@ -25,6 +25,11 @@ func main() {
 		log.Fatalf("This program must be invoked in the packer project root; in %s", wd)
 	}
 
+	preProcessors, err := discoverPreProcessors()
+	if err != nil {
+		log.Fatalf("Failed to discover pre processors: %s", err)
+	}
+
 	// Collect all of the data we need about plugins we have in the project
 	builders, err := discoverBuilders()
 	if err != nil {
@@ -44,6 +49,7 @@ func main() {
 	// Do some simple code generation and templating
 	output := source
 	output = strings.Replace(output, "IMPORTS", makeImports(builders, provisioners, postProcessors), 1)
+	output = strings.Replace(output, "PREPROCESSORS", makeMap("PreProcessors", "PreProcessor", preProcessors), 1)
 	output = strings.Replace(output, "BUILDERS", makeMap("Builders", "Builder", builders), 1)
 	output = strings.Replace(output, "PROVISIONERS", makeMap("Provisioners", "Provisioner", provisioners), 1)
 	output = strings.Replace(output, "POSTPROCESSORS", makeMap("PostProcessors", "PostProcessor", postProcessors), 1)
@@ -208,6 +214,12 @@ func discoverTypesInPath(path, typeID string) ([]plugin, error) {
 	return postProcessors, nil
 }
 
+func discoverPreProcessors() ([]plugin, error) {
+	path := "./pre-processor"
+	typeID := "PreProcessor"
+	return discoverTypesInPath(path, typeID)
+}
+
 func discoverBuilders() ([]plugin, error) {
 	path := "./builder"
 	typeID := "Builder"
@@ -248,6 +260,8 @@ type PluginCommand struct {
 	Meta
 }
 
+PREPROCESSORS
+
 BUILDERS
 
 PROVISIONERS
@@ -282,6 +296,13 @@ func (c *PluginCommand) Run(args []string) int {
 	}
 
 	switch pluginType {
+	case "pre-processor":
+		preProcessor, found := PreProcessors[pluginName]
+		if !found {
+			c.Ui.Error(fmt.Sprintf("Could not load pre-processor: %s", pluginName))
+			return 1
+		}
+		server.RegisterPreProcessor(preProcessor)
 	case "builder":
 		builder, found := Builders[pluginName]
 		if !found {
