@@ -127,6 +127,15 @@ func (c *Client) Exited() bool {
 	return c.exited
 }
 
+func (c *Client) PreProcessor() (packer.PreProcessor, error) {
+	client, err := c.packrpcClient()
+	if err != nil {
+		return nil, err
+	}
+
+	return &cmdPreProcessor{client.PreProcessor(), c}, nil
+}
+
 // Returns a builder implementation that is communicating over this
 // client. If the client hasn't been started, this will start it.
 func (c *Client) Builder() (packer.Builder, error) {

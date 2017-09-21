@@ -74,6 +74,13 @@ func (c *Client) Artifact() packer.Artifact {
 	}
 }
 
+func (c *Client) PreProcessor() packer.PreProcessor {
+	return &preProcessor{
+		client: c.client,
+		mux:    c.mux,
+	}
+}
+
 func (c *Client) Build() packer.Build {
 	return &build{
 		client: c.client,

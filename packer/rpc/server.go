@@ -11,6 +11,7 @@ import (
 
 const (
 	DefaultArtifactEndpoint      string = "Artifact"
+	DefaultPreProcessorEndpoint         = "PreProcessor"
 	DefaultBuildEndpoint                = "Build"
 	DefaultBuilderEndpoint              = "Builder"
 	DefaultCacheEndpoint                = "Cache"
@@ -61,6 +62,13 @@ func (s *Server) Close() error {
 func (s *Server) RegisterArtifact(a packer.Artifact) {
 	s.server.RegisterName(DefaultArtifactEndpoint, &ArtifactServer{
 		artifact: a,
+	})
+}
+
+func (s *Server) RegisterPreProcessor(p packer.PreProcessor) {
+	s.server.RegisterName(DefaultPreProcessorEndpoint, &PreProcessorServer{
+		mux: s.mux,
+		p:   p,
 	})
 }
 
