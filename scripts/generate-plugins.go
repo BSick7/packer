@@ -48,7 +48,7 @@ func main() {
 
 	// Do some simple code generation and templating
 	output := source
-	output = strings.Replace(output, "IMPORTS", makeImports(builders, provisioners, postProcessors), 1)
+	output = strings.Replace(output, "IMPORTS", makeImports(preProcessors, builders, provisioners, postProcessors), 1)
 	output = strings.Replace(output, "PREPROCESSORS", makeMap("PreProcessors", "PreProcessor", preProcessors), 1)
 	output = strings.Replace(output, "BUILDERS", makeMap("Builders", "Builder", builders), 1)
 	output = strings.Replace(output, "PROVISIONERS", makeMap("Provisioners", "Provisioner", provisioners), 1)
@@ -98,8 +98,12 @@ func makeMap(varName, varType string, items []plugin) string {
 	return output
 }
 
-func makeImports(builders, provisioners, postProcessors []plugin) string {
+func makeImports(preProcessors, builders, provisioners, postProcessors []plugin) string {
 	plugins := []string{}
+
+	for _, preProcessor := range preProcessors {
+		plugins = append(plugins, fmt.Sprintf("\t%s \"github.com/hashicorp/packer/%s\"\n", preProcessor.ImportName, filepath.ToSlash(preProcessor.Path)))
+	}
 
 	for _, builder := range builders {
 		plugins = append(plugins, fmt.Sprintf("\t%s \"github.com/hashicorp/packer/%s\"\n", builder.ImportName, filepath.ToSlash(builder.Path)))

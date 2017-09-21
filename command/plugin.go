@@ -58,6 +58,7 @@ import (
 	vagrantcloudpostprocessor "github.com/hashicorp/packer/post-processor/vagrant-cloud"
 	vspherepostprocessor "github.com/hashicorp/packer/post-processor/vsphere"
 	vspheretemplatepostprocessor "github.com/hashicorp/packer/post-processor/vsphere-template"
+	nullpreprocessor "github.com/hashicorp/packer/pre-processor/null"
 	ansibleprovisioner "github.com/hashicorp/packer/provisioner/ansible"
 	ansiblelocalprovisioner "github.com/hashicorp/packer/provisioner/ansible-local"
 	chefclientprovisioner "github.com/hashicorp/packer/provisioner/chef-client"
