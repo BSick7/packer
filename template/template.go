@@ -19,6 +19,7 @@ type Template struct {
 	MinVersion  string
 
 	Variables      map[string]*Variable
+	PreProcessors  [][]*PreProcessor
 	Builders       map[string]*Builder
 	Provisioners   []*Provisioner
 	PostProcessors [][]*PostProcessor
@@ -26,6 +27,14 @@ type Template struct {
 
 	// RawContents is just the raw data for this template
 	RawContents []byte
+}
+
+// PostProcessor represents a pre-processor within the template.
+type PreProcessor struct {
+	OnlyExcept `mapstructure:",squash"`
+
+	Type   string
+	Config map[string]interface{}
 }
 
 // Builder represents a builder configured in the template
@@ -94,6 +103,19 @@ func (t *Template) Validate() error {
 	if len(t.Builders) == 0 {
 		err = multierror.Append(err, errors.New(
 			"at least one builder must be defined"))
+	}
+
+	// Verify pre-processors
+	for i, chain := range t.PreProcessors {
+		for j, p := range chain {
+			// Validate only/except
+			if verr := p.OnlyExcept.Validate(t); verr != nil {
+				for _, e := range multierror.Append(verr).Errors {
+					err = multierror.Append(err, fmt.Errorf(
+						"pre-processor %d.%d: %s", i+1, j+1, e))
+				}
+			}
+		}
 	}
 
 	// Verify that the provisioner overrides target builders that exist

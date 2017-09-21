@@ -91,6 +91,7 @@ type coreBuild struct {
 	builderConfig  interface{}
 	builderType    string
 	hooks          map[string][]Hook
+	preProcessors  [][]coreBuildPreProcessor
 	postProcessors [][]coreBuildPostProcessor
 	provisioners   []coreBuildProvisioner
 	templatePath   string
@@ -101,6 +102,14 @@ type coreBuild struct {
 	onError       string
 	l             sync.Mutex
 	prepareCalled bool
+}
+
+// Keeps track of the pre-processor and the configuration of the
+// pre-processor used within a build
+type coreBuildPreProcessor struct {
+	processor     PreProcessor
+	processorType string
+	config        map[string]interface{}
 }
 
 // Keeps track of the post-processor and the configuration of the
@@ -146,6 +155,16 @@ func (b *coreBuild) Prepare() (warn []string, err error) {
 		OnErrorConfigKey:       b.onError,
 		TemplatePathKey:        b.templatePath,
 		UserVariablesConfigKey: b.variables,
+	}
+
+	// Prepare the pre-processors
+	for _, ppSeq := range b.preProcessors {
+		for _, corePP := range ppSeq {
+			err = corePP.processor.Configure(corePP.config, packerConfig)
+			if err != nil {
+				return
+			}
+		}
 	}
 
 	// Prepare the builder
@@ -220,6 +239,28 @@ func (b *coreBuild) Run(originalUi Ui, cache Cache) ([]Artifact, error) {
 		Ui:     originalUi,
 	}
 
+	errors := make([]error, 0)
+
+	// Run the pre-processors
+PreProcessorRunSeqLoop:
+	for _, ppSeq := range b.preProcessors {
+		for _, corePP := range ppSeq {
+			ppUi := &TargetedUI{
+				Target: fmt.Sprintf("%s (%s)", b.Name(), corePP.processorType),
+				Ui:     originalUi,
+			}
+
+			builderUi.Say(fmt.Sprintf("Running pre-processor: %s", corePP.processorType))
+			ts := CheckpointReporter.AddSpan(corePP.processorType, "pre-processor")
+			err := corePP.processor.PreProcess(ppUi)
+			ts.End(err)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("Pre-processor failed: %s", err))
+				continue PreProcessorRunSeqLoop
+			}
+		}
+	}
+
 	log.Printf("Running builder: %s", b.builderType)
 	ts := CheckpointReporter.AddSpan(b.builderType, "builder")
 	builderArtifact, err := b.builder.Run(builderUi, hook, cache)
@@ -234,7 +275,6 @@ func (b *coreBuild) Run(originalUi Ui, cache Cache) ([]Artifact, error) {
 		return nil, nil
 	}
 
-	errors := make([]error, 0)
 	keepOriginalArtifact := len(b.postProcessors) == 0
 
 	// Run the post-processors
